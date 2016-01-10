@@ -1,7 +1,7 @@
 import sys
 from PyQt4 import uic
 from PyQt4.QtGui import QWidget, QMainWindow, QApplication, QPixmap, QFontMetrics, QIcon
-from PyQt4.QtCore import QUrl, QByteArray, Qt
+from PyQt4.QtCore import QUrl, QByteArray, Qt, pyqtSignal, QThread
 from PyQt4.QtNetwork import QNetworkRequest, QNetworkAccessManager
 from remotefreebox import FreeboxController
 import urllib.request
@@ -90,11 +90,53 @@ class Program(QWidget):
             self.fbx.press(i)
 
 
+class FreeboxThread(QThread):
+    connected = pyqtSignal()
+
+    def __init__(self, parent=None):
+        QThread.__init__(self, parent)
+        self.is_connected = False
+        self.fbx = None
+        self.q = []
+
+    def press(self, cmd):
+        self.q.append(cmd)
+        if self.is_connected:
+            while self.q:
+                self.fbx.press(self.q.pop())
+
+    def run(self):
+        self.fbx = FreeboxController(self.connected_cb)
+
+    def connected_cb(self, el):
+        self.is_connected = True
+        self.connected.emit()
+
+
+class ProgramLoader(QThread):
+    channelReceived = pyqtSignal(tuple)
+
+    def __init__(self, parent=None):
+        QThread.__init__(self, parent)
+
+    def run(self):
+        channels = get("http://mafreebox.freebox.fr/api/v3/tv/channels")["result"]
+
+        obj = get("http://mafreebox.freebox.fr/api/v3/tv/bouquets/49/channels")
+        if obj["success"]:
+            for r in sorted(obj["result"], key=lambda x: x['number']):
+                if r["available"]:
+                    uuid = r["uuid"]
+                    self.channelReceived.emit((uuid, channels[uuid]["name"], r["number"]))
+
+
 class Freebox(QMainWindow):
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
         uic.loadUi('freebox.ui', self)
-        self.fbx = FreeboxController()
+
+        self.fbx = FreeboxThread()
+        self.fbx.start()
 
         self.powerButton.clicked.connect(self.buttonCallback("Power"))
         self.avButton.clicked.connect(self.buttonCallback("AV"))
@@ -128,22 +170,17 @@ class Freebox(QMainWindow):
         self.playPauseButton.clicked.connect(self.buttonCallback("Play/Pause"))
         self.forwardButton.clicked.connect(self.buttonCallback("Fast Forward"))
 
-        self.loadPrograms()
+        self.programLoader = ProgramLoader()
+        self.programLoader.channelReceived.connect(self.addProgram)
+        self.programLoader.start()
+
+    def addProgram(self, event):
+        uuid, name, number = event
+        p = Program(uuid, name, number, self.fbx)
+        self.listofPrograms.layout().addWidget(p)
 
     def buttonCallback(self, action):
         return lambda: self.fbx.press(action)
-
-    def loadPrograms(self):
-        channels = get("http://mafreebox.freebox.fr/api/v3/tv/channels")["result"]
-
-        obj = get("http://mafreebox.freebox.fr/api/v3/tv/bouquets/49/channels")
-        if obj["success"]:
-            for r in sorted(obj["result"], key=lambda x: x['number']):
-                if r["available"]:
-                    uuid = r["uuid"]
-                    p = Program(uuid, channels[uuid]["name"], r["number"],
-                                self.fbx)
-                    self.listofPrograms.layout().addWidget(p)
 
 
 app = QApplication(sys.argv)
