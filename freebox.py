@@ -1,4 +1,5 @@
 import sys
+import signal
 from PyQt4 import uic
 from PyQt4.QtGui import QWidget, QMainWindow, QApplication, QPixmap, QFontMetrics, QIcon
 from PyQt4.QtCore import QUrl, QByteArray, Qt, pyqtSignal, QThread
@@ -186,4 +187,5 @@ class Freebox(QMainWindow):
 app = QApplication(sys.argv)
 freebox = Freebox()
 freebox.show()
-app.exec_()
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+sys.exit(app.exec_())
