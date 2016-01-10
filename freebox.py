@@ -1,11 +1,98 @@
 import sys
-from PyQt4 import QtGui, uic
+from PyQt4 import uic
+from PyQt4.QtGui import QWidget, QMainWindow, QApplication, QPixmap, QFontMetrics, QIcon
+from PyQt4.QtCore import QUrl, QByteArray, Qt
+from PyQt4.QtNetwork import QNetworkRequest, QNetworkAccessManager
 from remotefreebox import FreeboxController
+import urllib.request
+import json
+import time
 
 
-class Freebox(QtGui.QMainWindow):
+def get(url):
+    response = urllib.request.urlopen(url)
+    html = response.read().decode("utf-8")
+    return json.loads(html)
+
+
+def setElidedText(label, text):
+    metrics = QFontMetrics(label.font())
+    elidedText = metrics.elidedText(text, Qt.ElideRight, label.width())
+    label.setText(elidedText)
+
+
+class LabelDownloader(QNetworkAccessManager):
+    def __init__(self, url, label=None, btn=None):
+        QNetworkAccessManager.__init__(self)
+        self.messageBuffer = QByteArray()
+        self.label = label
+        self.btn = btn
+        self.frmt = "PNG" if url.rsplit('.', 1)[1] == 'png' else "JPG"
+        request = QNetworkRequest(QUrl(url))
+        self.reply = self.get(request)
+        self.reply.finished.connect(self.slotFinished)
+        self.reply.readyRead.connect(self.slotReadData)
+
+    def slotReadData(self):
+        self.messageBuffer += self.reply.readAll()
+
+    def slotFinished(self):
+        pixmap = QPixmap()
+        pixmap.loadFromData(self.messageBuffer, self.frmt)
+        if self.label:
+            self.label.setPixmap(pixmap)
+        if self.btn:
+            self.btn.setIcon(QIcon(pixmap))
+
+
+class Program(QWidget):
+    def __init__(self, uuid, name, chan, fbx, parent=None):
+        QWidget.__init__(self, parent)
+        uic.loadUi('program.ui', self)
+        self.fbx = fbx
+        self.uuid = uuid
+        self.chan = chan
+        setElidedText(self.channelName, name)
+        self._l1 = LabelDownloader("http://mafreebox.freebox.fr/api/v3/tv/img/channels/logos68x60/"
+                                   + uuid + ".png", btn=self.channelImg)
+        try:
+            self.retrieveProgram()
+        except:
+            pass
+
+    def retrieveProgram(self):
+        url = "http://mafreebox.freebox.fr/api/v3/tv/epg/highlights/{}/{}/".format(self.uuid, int(time.time()))
+        obj = get(url)
+        res = None
+        i = 0
+        while i < len(obj["result"]) and obj["result"][i]["date"] <= time.time():
+            res = obj["result"][i]
+            i += 1
+
+        start = res["date"]
+        duration = res["duration"]
+        spent = int(time.time()) - start
+
+        self.progressBar.setMaximum(duration)
+        self.progressBar.setValue(spent)
+
+        self.title.setText(res["title"])
+        self.description.setText(res.get("sub_title", ""))
+        picture = res.get("picture", None)
+        if picture:
+            self._l2 = LabelDownloader("http://mafreebox.freebox.fr" + picture, self.previewImg)
+
+        self.channelImg.clicked.connect(self.switch)
+
+    def switch(self, event):
+        print(str(self.chan))
+        for i in str(self.chan):
+            self.fbx.press(i)
+
+
+class Freebox(QMainWindow):
     def __init__(self, parent=None):
-        QtGui.QMainWindow.__init__(self, parent)
+        QMainWindow.__init__(self, parent)
         uic.loadUi('freebox.ui', self)
         self.fbx = FreeboxController()
 
@@ -41,10 +128,25 @@ class Freebox(QtGui.QMainWindow):
         self.playPauseButton.clicked.connect(self.buttonCallback("Play/Pause"))
         self.forwardButton.clicked.connect(self.buttonCallback("Fast Forward"))
 
+        self.loadPrograms()
+
     def buttonCallback(self, action):
         return lambda: self.fbx.press(action)
 
-app = QtGui.QApplication(sys.argv)
+    def loadPrograms(self):
+        channels = get("http://mafreebox.freebox.fr/api/v3/tv/channels")["result"]
+
+        obj = get("http://mafreebox.freebox.fr/api/v3/tv/bouquets/49/channels")
+        if obj["success"]:
+            for r in sorted(obj["result"], key=lambda x: x['number']):
+                if r["available"]:
+                    uuid = r["uuid"]
+                    p = Program(uuid, channels[uuid]["name"], r["number"],
+                                self.fbx)
+                    self.listofPrograms.layout().addWidget(p)
+
+
+app = QApplication(sys.argv)
 freebox = Freebox()
 freebox.show()
 app.exec_()
