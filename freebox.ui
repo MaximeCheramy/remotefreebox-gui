@@ -483,6 +483,12 @@ border-top: 1px solid #888888;</string>
                  <property name="shortcut">
                   <string>Left</string>
                  </property>
+                 <property name="autoRepeat">
+                  <bool>true</bool>
+                 </property>
+                 <property name="autoRepeatDelay">
+                  <number>200</number>
+                 </property>
                  <property name="flat">
                   <bool>false</bool>
                  </property>
@@ -513,6 +519,12 @@ border-right: 1px solid #888888;</string>
                  </property>
                  <property name="shortcut">
                   <string>Up</string>
+                 </property>
+                 <property name="autoRepeat">
+                  <bool>true</bool>
+                 </property>
+                 <property name="autoRepeatDelay">
+                  <number>200</number>
                  </property>
                  <property name="flat">
                   <bool>false</bool>
@@ -563,6 +575,12 @@ border-bottom: 1px solid #888888;</string>
                  </property>
                  <property name="shortcut">
                   <string>Right</string>
+                 </property>
+                 <property name="autoRepeat">
+                  <bool>true</bool>
+                 </property>
+                 <property name="autoRepeatDelay">
+                  <number>200</number>
                  </property>
                  <property name="flat">
                   <bool>false</bool>
@@ -629,6 +647,12 @@ border-bottom: 1px solid #888888;</string>
                  </property>
                  <property name="shortcut">
                   <string>Down</string>
+                 </property>
+                 <property name="autoRepeat">
+                  <bool>true</bool>
+                 </property>
+                 <property name="autoRepeatDelay">
+                  <number>200</number>
                  </property>
                  <property name="flat">
                   <bool>false</bool>
@@ -717,6 +741,12 @@ border-bottom: 1px solid #888888;</string>
                  <property name="shortcut">
                   <string>-</string>
                  </property>
+                 <property name="autoRepeat">
+                  <bool>true</bool>
+                 </property>
+                 <property name="autoRepeatDelay">
+                  <number>200</number>
+                 </property>
                 </widget>
                </item>
                <item row="0" column="0">
@@ -744,6 +774,12 @@ border-top: 1px solid #888888;</string>
                  </property>
                  <property name="shortcut">
                   <string>+</string>
+                 </property>
+                 <property name="autoRepeat">
+                  <bool>true</bool>
+                 </property>
+                 <property name="autoRepeatDelay">
+                  <number>200</number>
                  </property>
                 </widget>
                </item>
@@ -818,6 +854,12 @@ border-top: 1px solid #888888;</string>
                  <property name="shortcut">
                   <string>Ctrl+Up</string>
                  </property>
+                 <property name="autoRepeat">
+                  <bool>true</bool>
+                 </property>
+                 <property name="autoRepeatDelay">
+                  <number>200</number>
+                 </property>
                 </widget>
                </item>
                <item row="3" column="0">
@@ -862,6 +904,12 @@ border-bottom: 1px solid #888888;</string>
                  </property>
                  <property name="shortcut">
                   <string>Ctrl+Down</string>
+                 </property>
+                 <property name="autoRepeat">
+                  <bool>true</bool>
+                 </property>
+                 <property name="autoRepeatDelay">
+                  <number>200</number>
                  </property>
                 </widget>
                </item>
